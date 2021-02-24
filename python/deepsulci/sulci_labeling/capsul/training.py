@@ -186,7 +186,7 @@ class SulciDeepTraining(Process):
                 cvi = 1
                 for train, test in kf.split(self.graphs):
                     print()
-                    print('** CV (%i/3) **' % cvi)
+                    print('** CV (%i/3) **' % (cvi+1))
                     print()
                     glist_train = agraphs[train]
                     glist_test = agraphs[test]
