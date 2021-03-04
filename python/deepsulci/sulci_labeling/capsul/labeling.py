@@ -19,6 +19,7 @@ import time
 import json
 import six
 from six.moves import range
+import warnings
 
 
 class SulciDeepLabeling(Process):
@@ -93,10 +94,14 @@ class SulciDeepLabeling(Process):
             self.graph, data['bck2'], ['unknown']*len(data['bck2']))
 
         # cutting
-        print('threshold', param['cutting_threshold'])
-        y_pred_cut = cutting(
-            y_scores, data['vert'], data['bck2'],
-            threshold=param['cutting_threshold'])
+        if 'cutting_threshold' in param.keys():
+            th = param['cutting_threshold']
+        else:
+            th = 0.5
+            warnings.warn("No cutting threshold found. Using arbitrary: {}".
+                          format(th))
+        print('threshold', th)
+        y_pred_cut = cutting(y_scores, data['vert'], data['bck2'], threshold=th)
 
         # conversion to Talairach
         for i in set(data['vert']):

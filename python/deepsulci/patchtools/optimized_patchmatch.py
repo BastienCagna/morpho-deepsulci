@@ -160,7 +160,7 @@ class OptimizedPatchMatch(object):
             inpoints = self.compute_patch(distmap_list[ann_num], ann_point,
                                           [s]*self.dim)
             rand_point = random.choice(inpoints)
-            # test if the patch is better
+            # tests if the patch is better
             new_patch = self.vol_compute_patch(
                 distmap_list[ann_num], rand_point, self.patch_size)
             dist = self.distance(patch, new_patch)

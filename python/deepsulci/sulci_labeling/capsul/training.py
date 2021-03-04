@@ -180,13 +180,13 @@ class SulciDeepTraining(Process):
             kf = KFold(n_splits=n_cvinner, shuffle=True, random_state=0)
             for step in range(3):
                 print()
-                print('**** STEP (%i/3) ****' % step)
+                print('**** STEP (%i/3) ****' % (step+1))
                 print()
                 result_matrix = None
                 cvi = 1
                 for train, test in kf.split(self.graphs):
                     print()
-                    print('** CV (%i/3) **' % (cvi+1))
+                    print('** CV (%i/3) **' % cvi)
                     print()
                     glist_train = agraphs[train]
                     glist_test = agraphs[test]

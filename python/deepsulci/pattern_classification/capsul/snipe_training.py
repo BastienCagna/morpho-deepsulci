@@ -20,7 +20,7 @@ class PatternSnipeTraining(Process):
     Process to train the Scoring by Non-local Image PAtch Estimator (SNIPE)
     based model (Coupe et al., 2012) to recognize a searched fold pattern.
 
-    This process consists of two steps. The second test depends on the first
+    This process consists of two steps. The second tests depends on the first
     step. However, they can be started independently if the previous steps have
     already been completed.
 
