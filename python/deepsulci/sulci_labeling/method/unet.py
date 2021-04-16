@@ -210,6 +210,7 @@ class UnetSulciLabeling(object):
         self.trained_model = model
 
     def labeling(self, gfile, bck2=None, names=None):
+        # TODO: add verbosity argument
         print('Labeling', gfile)
         trial = 0
         while trial < 2:
@@ -243,6 +244,8 @@ class UnetSulciLabeling(object):
                     yscores = np.transpose(yscores)
                 return ytrue, ypred, yscores
             except RuntimeError as e:
+                # TODO: simplify by calling lablling after switching to cpu
+                #  rather than looping
                 print(e)
                 if self.cuda >= 0 and e.args[0].find('not enough memory') != -1:
                     print('not enough memory on GPU. Switching to CPU.')
