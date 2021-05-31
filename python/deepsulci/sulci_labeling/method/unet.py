@@ -126,8 +126,7 @@ class UnetSulciLabeling(object):
         best_epoch = 0
         num_epochs = 200
         for epoch in range(num_epochs):
-            print('Epoch {}/{}'.format(epoch, num_epochs - 1))
-            print('-' * 10)
+            print('Epoch {}/{}: '.format(epoch, num_epochs - 1), end="")
             start_time = time.time()
 
             # Each epoch has a training and validation phase
@@ -174,7 +173,7 @@ class UnetSulciLabeling(object):
                     [self.dict_sulci[ss] for ss in self.sslist])
 
                 print('{} Loss: {:.4f} Acc: {:.4f}'.format(
-                    phase, epoch_loss, epoch_acc))
+                    phase, epoch_loss, epoch_acc), end="")
 
                 # deep copy the model
                 if phase == 'val' and epoch_acc > best_acc:
@@ -187,8 +186,8 @@ class UnetSulciLabeling(object):
             divide_lr(epoch_loss, model)
 
             if divide_lr.early_stop:
-                print('Divide learning rate')
                 lr = lr/2
+                print('\tDivide learning rate. New value: {}'.format(lr))
                 optimizer = optim.SGD(model.parameters(), lr=lr,
                                       momentum=self.momentum)
                 divide_lr = EarlyStopping(patience=patience)
@@ -197,8 +196,7 @@ class UnetSulciLabeling(object):
                 print("Early stopping")
                 break
 
-            print('Epoch took %i s.' % (time.time() - start_time))
-            print()
+            print('\tEpoch took %i s.' % (time.time() - start_time))
 
         time_elapsed = time.time() - since
         print('Training complete in {:.0f}m {:.0f}s'.format(
@@ -212,6 +210,7 @@ class UnetSulciLabeling(object):
         self.trained_model = model
 
     def labeling(self, gfile, bck2=None, names=None):
+        # TODO: add verbosity argument
         print('Labeling', gfile)
         trial = 0
         while trial < 2:
@@ -245,6 +244,8 @@ class UnetSulciLabeling(object):
                     yscores = np.transpose(yscores)
                 return ytrue, ypred, yscores
             except RuntimeError as e:
+                # TODO: simplify by calling lablling after switching to cpu
+                #  rather than looping
                 print(e)
                 if self.cuda >= 0 and e.args[0].find('not enough memory') != -1:
                     print('not enough memory on GPU. Switching to CPU.')

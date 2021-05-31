@@ -180,7 +180,7 @@ class SulciDeepTraining(Process):
             kf = KFold(n_splits=n_cvinner, shuffle=True, random_state=0)
             for step in range(3):
                 print()
-                print('**** STEP (%i/3) ****' % step)
+                print('**** STEP (%i/3) ****' % (step+1))
                 print()
                 result_matrix = None
                 cvi = 1

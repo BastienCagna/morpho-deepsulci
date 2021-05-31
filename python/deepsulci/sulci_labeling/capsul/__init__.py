@@ -1,4 +1,7 @@
 
+from .labeling import SulciDeepLabeling
+from .training import SulciDeepTraining
+
 _doc_path = None
 
 def _init_doc_path():
@@ -26,4 +29,3 @@ def _init_doc_path():
     return _doc_path
 
 _init_doc_path()
-
