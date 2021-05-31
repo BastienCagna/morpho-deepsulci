@@ -189,6 +189,7 @@ def extract_data(graph, flip=False):
                     p0 = [p * v for p, v in zip(point, vs)]
                     p1 = trans_tal.transform(p0)
                     data['bck'].append(list(p1))
+                    # FIXME: Why /2 ?
                     p2 = [int(round(p1[i]/2)) for i in range(3)]
                     data['bck2'].append(p2)
                     data['names'].append(name)
