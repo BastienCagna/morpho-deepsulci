@@ -81,9 +81,10 @@ class SulciDeepLabeling(Process):
             self.sulci_side_list, num_filter=64, batch_size=1, cuda=self.cuda)
         method.load(self.model_file)
 
-        dict_sulci = {self.sulci_side_list[i]: i for i in range(len(
-            self.sulci_side_list))}
-        dict_num = {v: k for k, v in dict_sulci.items()}
+        # dict_sulci = {self.sulci_side_list[i]: i for i in range(len(
+        #     self.sulci_side_list))}
+        # dict_num = {v: k for k, v in dict_sulci.items()}
+        # dict_num = {idx: ss for idx, ss in enumerate(self.sulci_side_list)}
 
         # voxel labeling
         graph = aims.read(self.graph)
@@ -95,13 +96,11 @@ class SulciDeepLabeling(Process):
 
         # cutting
         if 'cutting_threshold' in param.keys():
-            th = param['cutting_threshold']
+            y_pred_cut = cutting(y_scores, data['vert'], data['bck2'],
+                                 threshold=param['cutting_threshold'])
         else:
-            th = 0.5
-            warnings.warn("No cutting threshold found. Using arbitrary: {}".
-                          format(th))
-        print('threshold', th)
-        y_pred_cut = cutting(y_scores, data['vert'], data['bck2'], threshold=th)
+            print("Do not perform cutting (no threshold defined)")
+            y_pred_cut = y_pred
 
         # conversion to Talairach
         for i in set(data['vert']):
@@ -118,8 +117,8 @@ class SulciDeepLabeling(Process):
         result['point_x'] = bck[:, 0]
         result['point_y'] = bck[:, 1]
         result['point_z'] = bck[:, 2]
-        result['before_cutting'] = [dict_num[y] for y in y_pred]
-        result['after_cutting'] = [dict_num[y] for y in y_pred_cut]
+        result['before_cutting'] = [self.sulci_side_list[y] for y in y_pred]
+        result['after_cutting'] = [self.sulci_side_list[y] for y in y_pred_cut]
         roots = aims.read(self.roots)
         graph, summary = graph_pointcloud.build_split_graph(
             graph, result, roots)

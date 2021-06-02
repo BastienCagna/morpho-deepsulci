@@ -50,7 +50,7 @@ class UnetSulciLabeling(object):
         self.background = -1
         self.sulci_side_list = [str(s) for s in sulci_side_list]
         self.sslist = [ss for ss in self.sulci_side_list if not ss.startswith('unknown') and not ss.startswith('ventricle')]
-        self.dict_sulci = {self.sulci_side_list[i]: i for i in range(len(self.sulci_side_list))}
+        self.dict_sulci = {ss: i for i, ss in enumerate(self.sulci_side_list)}
         self.dict_num = {v: k for k, v in self.dict_sulci.items()}
         self.translation_file = translation_file
 
@@ -62,6 +62,8 @@ class UnetSulciLabeling(object):
         self.num_filter = num_filter
         self.num_channel = 1
         self.pretrained_model_wts = None
+
+        self.trained_model = None
 
         # device
         self.cuda = cuda
