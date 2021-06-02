@@ -103,10 +103,14 @@ class UnetSulciLabeling(object):
             shuffle=False, num_workers=0)
 
         # MODEL
-        print('Network initialization...')
-        model = UNet3D(self.num_channel, len(self.sulci_side_list),
-                       final_sigmoid=False,
-                       init_channel_number=self.num_filter)
+        if self.trained_model:
+            print('Use already trained model...')
+            model = self.trained_model
+        else:
+            print('Network initialization...')
+            model = UNet3D(self.num_channel, len(self.sulci_side_list),
+                           final_sigmoid=False,
+                           init_channel_number=self.num_filter)
         model = model.to(self.device)
 
         lr = self.lr

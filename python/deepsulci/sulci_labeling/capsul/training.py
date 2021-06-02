@@ -19,10 +19,19 @@ import json
 import torch
 import sigraph
 import os
+import os.path as op
 import time
 import six
 from six.moves import range
 from six.moves import zip
+from joblib.parallel import Parallel, delayed, cpu_count
+
+
+def loading_job(gfile, flt):
+    graph = aims.read(gfile)
+    if flt is not None:
+        flt.translate(graph)
+    return extract_data(graph)
 
 
 class SulciDeepTraining(Process):
@@ -106,7 +115,7 @@ class SulciDeepTraining(Process):
             flt.readLabels(self.translation_file)
             trfile = self.translation_file
         else:
-            trfile = None
+            trfile, flt = None, None
             print('Translation file not found.')
 
         # compute sulci_side_list
@@ -119,15 +128,13 @@ class SulciDeepTraining(Process):
             print()
             start = time.time()
 
+            datas = Parallel(n_jobs=max(cpu_count()-2, 1))(delayed(loading_job)(gfile, flt)for gfile in self.graphs)
+
             sulci_side_list = set()
             dict_bck2, dict_names = {}, {}
-            for gfile in self.graphs:
-                graph = aims.read(gfile)
-                if trfile is not None:
-                    flt.translate(graph)
-                data = extract_data(graph)
-                dict_bck2[gfile] = data['bck2']
-                dict_names[gfile] = data['names']
+            for i, data in enumerate(datas):
+                dict_bck2[self.graphs[i]] = data['bck2']
+                dict_names[self.graphs[i]] = data['names']
                 for n in data['names']:
                     sulci_side_list.add(n)
             sulci_side_list = sorted(list(sulci_side_list))
@@ -135,9 +142,27 @@ class SulciDeepTraining(Process):
             if os.path.exists(self.param_file):
                 with open(self.param_file) as f:
                     param = json.load(f)
+                if sulci_side_list != param['sulci_side_list']:
+                    stop = False
+                    for ss in param['sulci_side_list']:
+                        if ss not in sulci_side_list:
+                            print(ss, " is missing in the old sulci side list")
+                            stop = True
+
+                    for ss in sulci_side_list:
+                        if ss not in param['sulci_side_list']:
+                            print(ss, " is missing in the new sulci side list. "
+                                      "Occurences of", ss, "are replaced by unknown")
+                            for gfile in self.graphs:
+                                for i, name in enumerate(dict_names[gfile]):
+                                    dict_names[gfile][i] = name if name != ss else 'unknown'
+                    sulci_side_list = param['sulci_side_list']
+                    if stop:
+                        raise ValueError('New sulci side list is not equal to the '
+                                         'previous one saved in params file.')
             else:
                 param = {}
-            param['sulci_side_list'] = [str(s) for s in sulci_side_list]
+                param['sulci_side_list'] = [str(s) for s in sulci_side_list]
             with open(self.param_file, 'w') as f:
                 json.dump(param, f)
 
@@ -224,7 +249,12 @@ class SulciDeepTraining(Process):
             print('------------------------')
             print()
             start = time.time()
-            method.trained_model = None
+
+            if op.exists(self.model_file):
+                print("Loading existing model")
+                method.load(self.model_file)
+            else:
+                method.trained_model = None
             gfile_list_train, gfile_list_test = train_test_split(
                 self.graphs, test_size=0.1)
             method.learning(gfile_list_train, gfile_list_test)

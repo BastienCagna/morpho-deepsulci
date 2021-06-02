@@ -96,6 +96,7 @@ class ErrorComputation(Process):
 
             re.ix[gfile, 'ESI'] = sum([re.ix[gfile, 'ESI_'+str(ss)]
                                       for ss in self.sulci_side_list])
+            print(re.ix[gfile, 'ESI'])
 
         re.to_csv(self.error_file)
 
