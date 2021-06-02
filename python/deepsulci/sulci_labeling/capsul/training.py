@@ -19,6 +19,7 @@ import json
 import torch
 import sigraph
 import os
+import os.path as op
 import time
 import six
 from six.moves import range
@@ -224,7 +225,11 @@ class SulciDeepTraining(Process):
             print('------------------------')
             print()
             start = time.time()
-            method.trained_model = None
+
+            if op.exists(self.model_file):
+                method.load(self.model_file)
+            else:
+                method.trained_model = None
             gfile_list_train, gfile_list_test = train_test_split(
                 self.graphs, test_size=0.1)
             method.learning(gfile_list_train, gfile_list_test)
