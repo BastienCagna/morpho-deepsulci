@@ -143,11 +143,9 @@ class SulciDeepTraining(Process):
                 with open(self.param_file) as f:
                     param = json.load(f)
                 if sulci_side_list != param['sulci_side_list']:
-                    stop = False
                     for ss in param['sulci_side_list']:
                         if ss not in sulci_side_list:
                             print(ss, " is missing in the old sulci side list")
-                            stop = True
 
                     for ss in sulci_side_list:
                         if ss not in param['sulci_side_list']:
@@ -157,9 +155,6 @@ class SulciDeepTraining(Process):
                                 for i, name in enumerate(dict_names[gfile]):
                                     dict_names[gfile][i] = name if name != ss else 'unknown'
                     sulci_side_list = param['sulci_side_list']
-                    if stop:
-                        raise ValueError('New sulci side list is not equal to the '
-                                         'previous one saved in params file.')
             else:
                 param = {}
                 param['sulci_side_list'] = [str(s) for s in sulci_side_list]

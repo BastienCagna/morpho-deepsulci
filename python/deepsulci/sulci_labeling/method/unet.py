@@ -106,7 +106,7 @@ class UnetSulciLabeling(object):
 
         # MODEL
         if self.trained_model:
-            print('Use already trained model...')
+            print('Initialize with an already trained model...')
             model = self.trained_model
         else:
             print('Network initialization...')
