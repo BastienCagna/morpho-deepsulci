@@ -97,6 +97,10 @@ class SulciDeepTraining(Process):
             True, output=False, optional=True,
             desc='perform the cutting hyperparameter tuning step'))
 
+        self.add_trait('dropout', traits.Float(
+            0,
+            output=False, desc='Dropout (no drpout by default'))
+
         self.add_trait('model_file', traits.File(
             output=True,
             desc='file (.mdsm) storing neural network parameters'))
@@ -182,9 +186,8 @@ class SulciDeepTraining(Process):
 
         # init method
         sslist = [ss for ss in sulci_side_list if not ss.startswith('unknown') and not ss.startswith('ventricle')]
-        dropout = 0.
         method = UnetSulciLabeling(
-            sulci_side_list, num_filter=64, batch_size=1, dropout=dropout, cuda=self.cuda,
+            sulci_side_list, num_filter=64, batch_size=1, dropout=self.dropout, cuda=self.cuda,
             translation_file=trfile,
             dict_bck2=dict_bck2, dict_names=dict_names)
 
