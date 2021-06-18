@@ -145,11 +145,11 @@ class SulciDeepTraining(Process):
                 if sulci_side_list != param['sulci_side_list']:
                     for ss in param['sulci_side_list']:
                         if ss not in sulci_side_list:
-                            print(ss, " is missing in the old sulci side list")
+                            print(ss, " is missing in the new sulci side list")
 
                     for ss in sulci_side_list:
                         if ss not in param['sulci_side_list']:
-                            print(ss, " is missing in the new sulci side list. "
+                            print(ss, " is missing in the old sulci side list. "
                                       "Occurences of", ss, "are replaced by unknown")
                             for gfile in self.graphs:
                                 for i, name in enumerate(dict_names[gfile]):
@@ -182,8 +182,9 @@ class SulciDeepTraining(Process):
 
         # init method
         sslist = [ss for ss in sulci_side_list if not ss.startswith('unknown') and not ss.startswith('ventricle')]
+        dropout = 0.
         method = UnetSulciLabeling(
-            sulci_side_list, num_filter=64, batch_size=1, cuda=self.cuda,
+            sulci_side_list, num_filter=64, batch_size=1, dropout=dropout, cuda=self.cuda,
             translation_file=trfile,
             dict_bck2=dict_bck2, dict_names=dict_names)
 

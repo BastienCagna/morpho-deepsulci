@@ -36,7 +36,7 @@ class UnetSulciLabeling(object):
     '''
     def __init__(self, sulci_side_list,
                  batch_size=3, cuda=0, lr=0.001, momentum=0.9,
-                 num_filter=64, translation_file=None,
+                 num_filter=64, dropout=0, translation_file=None,
                  dict_bck2=None, dict_names=None):
 
         # training parameters
@@ -59,6 +59,7 @@ class UnetSulciLabeling(object):
         self.dict_names = {} if dict_names is None else dict_names
 
         # network
+        self.dropout = dropout
         self.num_filter = num_filter
         self.num_channel = 1
         self.pretrained_model_wts = None
@@ -111,7 +112,7 @@ class UnetSulciLabeling(object):
         else:
             print('Network initialization...')
             model = UNet3D(self.num_channel, len(self.sulci_side_list),
-                           final_sigmoid=False,
+                           final_sigmoid=False, dropout=self.dropout,
                            init_channel_number=self.num_filter)
         model = model.to(self.device)
 

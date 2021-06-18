@@ -8,6 +8,7 @@ from functools import partial
 from six.moves import range
 from six.moves import zip
 
+
 class UNet3D(nn.Module):
     """
     3DUnet model from
@@ -32,7 +33,7 @@ class UNet3D(nn.Module):
     """
 
     def __init__(self, in_channels, out_channels, final_sigmoid,
-                 interpolate=True, conv_layer_order='crg',
+                 interpolate=True, dropout=0., conv_layer_order='crg',
                  init_channel_number=64):
         super(UNet3D, self).__init__()
 
@@ -46,13 +47,13 @@ class UNet3D(nn.Module):
                     conv_layer_order=conv_layer_order, ind=0,
                     num_groups=num_groups),
             Encoder(init_channel_number, 2 * init_channel_number,
-                    conv_layer_order=conv_layer_order, ind=1,
+                    conv_layer_order=conv_layer_order, ind=1, dropout=dropout,
                     num_groups=num_groups),
             Encoder(2 * init_channel_number, 4 * init_channel_number,
-                    conv_layer_order=conv_layer_order, ind=2,
+                    conv_layer_order=conv_layer_order, ind=2, dropout=dropout,
                     num_groups=num_groups),
             Encoder(4 * init_channel_number, 8 * init_channel_number,
-                    conv_layer_order=conv_layer_order, ind=3,
+                    conv_layer_order=conv_layer_order, ind=3, dropout=dropout,
                     num_groups=num_groups),
         ])
 
@@ -194,17 +195,21 @@ class Encoder(nn.Module):
         conv_kernel_size (int): size of the convolving kernel
         is_max_pool (bool): if True use MaxPool3d before DoubleConv
         max_pool_kernel_size (tuple): the size of the window to take a max over
+        dropout (float): if > 0 activate the dropout layer between the maxpoolin and the convolution*
         conv_layer_order (string): determines the order of layers
             in `DoubleConv` module. See `DoubleConv` for more info.
         num_groups (int): number of groups for the GroupNorm
+
+        *see <https://www.mdpi.com/2313-433X/7/2/37>
     """
 
     def __init__(self, in_channels, out_channels, conv_kernel_size=3,
                  is_max_pool=True, max_pool_kernel_size=(2, 2, 2),
-                 conv_layer_order='crg', num_groups=32, ind=0):
+                 dropout=0, conv_layer_order='crg', num_groups=32, ind=0):
         super(Encoder, self).__init__()
         self.ind = ind
         self.max_pool = nn.MaxPool3d(kernel_size=max_pool_kernel_size, padding=1) if is_max_pool else None
+        self.dropout = nn.Dropout(dropout) if dropout > 0 else None
         self.double_conv = DoubleConv(in_channels, out_channels,
                                       kernel_size=conv_kernel_size,
                                       order=conv_layer_order,
@@ -213,6 +218,8 @@ class Encoder(nn.Module):
     def forward(self, x):
         if self.max_pool is not None:
             x = self.max_pool(x)
+        if self.dropout is not None:
+            x = self.dropout(x)
         x = self.double_conv(x)
         return x
 
@@ -268,6 +275,7 @@ class Decoder(nn.Module):
         x = torch.cat((encoder_features, x), dim=1)
         x = self.double_conv(x)
         return x
+
 
 class _GroupNorm(nn.Module):
     dim_to_params_shape = {
