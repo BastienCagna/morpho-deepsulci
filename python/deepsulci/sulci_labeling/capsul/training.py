@@ -214,8 +214,11 @@ class SulciDeepTraining(Process):
                 print('\tLearning rate: ', method.lr)
                 print('\tMomentum: ', method.momentum)
 
-                with open(self.param_file) as f:
-                    param = json.load(f)
+                if op.exists(self.param_file):
+                    with open(self.param_file) as f:
+                        param = json.load(f)
+                else:
+                    param = {}
                 param['best_lr1'] = method.lr
                 param['best_momentum'] = method.momentum
                 with open(self.param_file, 'w+') as f:
