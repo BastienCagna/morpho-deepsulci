@@ -219,7 +219,7 @@ class SulciDeepTraining(Process):
                 param['best_lr1'] = method.lr
                 param['best_momentum'] = method.momentum
                 with open(self.param_file, 'w+') as f:
-                    json.dump(param)
+                    json.dump(param, f)
             else:
                 n_cvinner = 3
                 kf = KFold(n_splits=n_cvinner, shuffle=True, random_state=0)
