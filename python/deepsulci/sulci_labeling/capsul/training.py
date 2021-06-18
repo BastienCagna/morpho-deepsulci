@@ -99,7 +99,13 @@ class SulciDeepTraining(Process):
 
         self.add_trait('dropout', traits.Float(
             0,
-            output=False, desc='Dropout (no drpout by default'))
+            output=False, desc='Dropout (no dropout by default)'))
+        self.add_trait('learning_rate', traits.Float(
+            0,
+            output=False, desc='Learning rate (automatic by default)'))
+        self.add_trait('dropout', traits.Float(
+            0,
+            output=False, desc='Momentum (automatic by default'))
 
         self.add_trait('model_file', traits.File(
             output=True,
@@ -199,36 +205,51 @@ class SulciDeepTraining(Process):
             print('--- FIX LEARNING RATE / MOMENTUM ---')
             print('------------------------------------')
             print()
+
             start = time.time()
-            n_cvinner = 3
-            kf = KFold(n_splits=n_cvinner, shuffle=True, random_state=0)
-            for step in range(3):
-                print()
-                print('**** STEP (%i/3) ****' % (step+1))
-                print()
-                result_matrix = None
-                cvi = 1
-                for train, test in kf.split(self.graphs):
-                    print()
-                    print('** CV (%i/3) **' % cvi)
-                    print()
-                    glist_train = agraphs[train]
-                    glist_test = agraphs[test]
-                    result_m = method.cv_inner(
-                        glist_train, glist_test, self.param_file, step)
+            if self.learning_rate == 0 and self.momentum == 0:
+                method.lr = self.learning_rate
+                method.momentum = self.momentum
+                print("Parameters fixed by the user:")
+                print('\tLearning rate: ', method.lr)
+                print('\tMomentum: ', method.momentum)
 
-                    if result_matrix is None:
-                        result_matrix = result_m
-                    else:
-                        for i in range(n_cvinner):
-                            result_matrix[i].extend(result_m[i])
-                    cvi += 1
+                with open(self.param_file) as f:
+                    param = json.load(f)
+                param['best_lr1'] = method.lr
+                param['best_momentum'] = method.momentum
+                with open(self.param_file, 'w+') as f:
+                    json.dump(param)
+            else:
+                n_cvinner = 3
+                kf = KFold(n_splits=n_cvinner, shuffle=True, random_state=0)
+                for step in range(3):
+                    print()
+                    print('**** STEP (%i/3) ****' % (step+1))
+                    print()
+                    result_matrix = None
+                    cvi = 1
+                    for train, test in kf.split(self.graphs):
+                        print()
+                        print('** CV (%i/3) **' % cvi)
+                        print()
+                        glist_train = agraphs[train]
+                        glist_test = agraphs[test]
+                        result_m = method.cv_inner(
+                            glist_train, glist_test, self.param_file, step)
 
-                print()
-                print('** FIND HYPERPARAMETERS **')
-                print()
-                method.find_hyperparameters(
-                    result_matrix, self.param_file, step)
+                        if result_matrix is None:
+                            result_matrix = result_m
+                        else:
+                            for i in range(n_cvinner):
+                                result_matrix[i].extend(result_m[i])
+                        cvi += 1
+
+                    print()
+                    print('** FIND HYPERPARAMETERS **')
+                    print()
+                    method.find_hyperparameters(
+                        result_matrix, self.param_file, step)
             end = time.time()
             print()
             print("STEP 2 took %s" % str(timedelta(seconds=int(end-start))))
