@@ -207,7 +207,7 @@ class SulciDeepTraining(Process):
             print()
 
             start = time.time()
-            if self.learning_rate == 0 and self.momentum == 0:
+            if self.learning_rate > 0 and self.momentum > 0:
                 method.lr = self.learning_rate
                 method.momentum = self.momentum
                 print("Parameters fixed by the user:")
