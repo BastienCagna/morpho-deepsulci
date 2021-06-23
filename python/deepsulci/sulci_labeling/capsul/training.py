@@ -97,15 +97,18 @@ class SulciDeepTraining(Process):
             True, output=False, optional=True,
             desc='perform the cutting hyperparameter tuning step'))
 
+        self.add_trait('batch_size', traits.Float(
+            1,
+            output=False, desc='Batch size (default 1)'))
         self.add_trait('dropout', traits.Float(
             0,
             output=False, desc='Dropout (no dropout by default)'))
         self.add_trait('learning_rate', traits.Float(
             0,
             output=False, desc='Learning rate (automatic by default)'))
-        self.add_trait('dropout', traits.Float(
+        self.add_trait('momentum', traits.Float(
             0,
-            output=False, desc='Momentum (automatic by default'))
+            output=False, desc='Momentum (automatic by default)'))
 
         self.add_trait('model_file', traits.File(
             output=True,
@@ -116,6 +119,9 @@ class SulciDeepTraining(Process):
         self.add_trait('traindata_file', traits.File(
             output=True, desc='file (.json) storing the data extracted'
                               ' from the training base graphs'))
+        self.add_trait('log_file', traits.File(
+            output=True,
+            desc='file (.csv) storing learning info during step 3'))
 
     def _run_process(self):
         agraphs = np.asarray(self.graphs)
@@ -193,7 +199,7 @@ class SulciDeepTraining(Process):
         # init method
         sslist = [ss for ss in sulci_side_list if not ss.startswith('unknown') and not ss.startswith('ventricle')]
         method = UnetSulciLabeling(
-            sulci_side_list, num_filter=64, batch_size=1, dropout=self.dropout, cuda=self.cuda,
+            sulci_side_list, num_filter=64, batch_size=self.batch_size, dropout=self.dropout, cuda=self.cuda,
             translation_file=trfile,
             dict_bck2=dict_bck2, dict_names=dict_names)
 
@@ -280,7 +286,7 @@ class SulciDeepTraining(Process):
                 method.trained_model = None
             gfile_list_train, gfile_list_test = train_test_split(
                 self.graphs, test_size=0.1)
-            method.learning(gfile_list_train, gfile_list_test)
+            method.learning(gfile_list_train, gfile_list_test, self.log_file)
 
             cpu_model = method.trained_model.to(torch.device('cpu'))
             torch.save(cpu_model.state_dict(), self.model_file)

@@ -15,8 +15,13 @@ import pandas as pd
 import time
 import copy
 import json
+import os.path as op
+import shutil
+from datetime import datetime
 from six.moves import range
 from six.moves import zip
+
+#from torch.utils.tensorboard import SummaryWriter
 
 
 class UnetSulciLabeling(object):
@@ -37,7 +42,7 @@ class UnetSulciLabeling(object):
     def __init__(self, sulci_side_list,
                  batch_size=3, cuda=0, lr=0.001, momentum=0.9,
                  num_filter=64, dropout=0, translation_file=None,
-                 dict_bck2=None, dict_names=None):
+                 dict_bck2=None, dict_names=None, log_f=None):
 
         # training parameters
         self.lr = lr
@@ -51,6 +56,8 @@ class UnetSulciLabeling(object):
         self.sulci_side_list = [str(s) for s in sulci_side_list]
         self.sslist = [ss for ss in self.sulci_side_list if not ss.startswith('unknown') and not ss.startswith('ventricle')]
         self.dict_sulci = {ss: i for i, ss in enumerate(self.sulci_side_list)}
+	# Set unknown label to -1 to ignore it when calculating the loss
+        self.dict_sulci['unknown'] = -1
         self.dict_num = {v: k for k, v in self.dict_sulci.items()}
         self.translation_file = translation_file
 
@@ -75,9 +82,17 @@ class UnetSulciLabeling(object):
                 "cuda" if torch.cuda.is_available() else "cpu", index=cuda)
         print('Working on', self.device)
 
-    def learning(self, gfile_list_train, gfile_list_test):
+    def learning(self, gfile_list_train, gfile_list_test, log_f=None):
         print('TRAINING ON %i + %i samples' %
               (len(gfile_list_train), len(gfile_list_test)))
+        
+        # Log file
+        if log_f is not None:
+            print("\nStoring learning info to: " + log_f)
+            if op.exists(log_f):
+                print('\t(Move already existing log file to .back)')
+                shutil.move(log_f, log_f + ".back")
+        
         print()
         print('PARAMETERS')
         print('----------')
@@ -93,7 +108,7 @@ class UnetSulciLabeling(object):
             train=False, translation_file=self.translation_file,
             dict_bck2=self.dict_bck2, dict_names=self.dict_names)
         valloader = torch.utils.data.DataLoader(
-            valdataset, batch_size=self.batch_size,
+            valdataset, batch_size=int(self.batch_size),
             shuffle=False, num_workers=0)
 
         print('Extract train dataloader...')
@@ -127,6 +142,9 @@ class UnetSulciLabeling(object):
         self.criterion = nn.CrossEntropyLoss(ignore_index=-1)
 
         # TRAINING
+        log_df = {k: [] for k in ['epoch', 'time', 'duration', 'train_loss', 'train_acc',
+                                  'test_loss', 'test_acc', 'lr', 'momentum']}
+        log_df = pd.DataFrame(log_df)
         since = time.time()
         best_model_wts = copy.deepcopy(model.state_dict())
         best_acc, epoch_acc = 0., 0.
@@ -160,6 +178,8 @@ class UnetSulciLabeling(object):
                     # forwards.det
                     # track history if only in train
                     with torch.set_grad_enabled(phase == 'train'):
+                        # TODO: prediction must be averaged over T predicitons if using dropout
+                        # if self.dropout is not None and self.dropout > 0:
                         outputs = model(inputs)
                         _, preds = torch.max(outputs, 1)
                         loss = self.criterion(outputs, labels)
@@ -179,6 +199,13 @@ class UnetSulciLabeling(object):
                     y_true, y_pred,
                     [self.dict_sulci[ss] for ss in self.sslist])
 
+                if phase == 'train':
+                    trn_loss = epoch_loss
+                    trn_acc = epoch_acc
+                else:
+                    tst_loss = epoch_loss
+                    tst_acc = epoch_acc
+
                 print('{} Loss: {:.4f} Acc: {:.4f}'.format(
                     phase, epoch_loss, epoch_acc), end="")
 
@@ -187,6 +214,15 @@ class UnetSulciLabeling(object):
                     best_acc = epoch_acc
                     best_epoch = epoch
                     best_model_wts = copy.deepcopy(model.state_dict())
+
+            log = {
+                "epoch": epoch, "time": datetime.now(), "duration": time.time() - start_time,
+                "train_loss": trn_loss, "train_acc": trn_acc,
+                "test_loss": tst_loss, "test_acc": tst_acc,
+                "lr": lr, "momentum": self.momentum
+            }
+            log_df = log_df.append(log, ignore_index=True)
+            log_df.to_csv(log_f, index=False)
 
             # early_stopping
             es_stop(epoch_loss, model)

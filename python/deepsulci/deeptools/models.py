@@ -209,7 +209,7 @@ class Encoder(nn.Module):
         super(Encoder, self).__init__()
         self.ind = ind
         self.max_pool = nn.MaxPool3d(kernel_size=max_pool_kernel_size, padding=1) if is_max_pool else None
-        self.dropout = nn.Dropout(dropout) if dropout > 0 else None
+        self.dropout = nn.Dropout(p=dropout) if dropout > 0 else None
         self.double_conv = DoubleConv(in_channels, out_channels,
                                       kernel_size=conv_kernel_size,
                                       order=conv_layer_order,
